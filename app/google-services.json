@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "859969152036",
+    "firebase_url": "https://e-precast-abac0-default-rtdb.firebaseio.com",
+    "project_id": "e-precast-abac0",
+    "storage_bucket": "e-precast-abac0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:859969152036:android:30de75918a51eafb9be4b1",
+        "android_client_info": {
+          "package_name": "com.naufal.e_precast"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBFXW9JEz2dlv2WN6h2BAZ1hfV3IH4nn8o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

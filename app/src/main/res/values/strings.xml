@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">E-Precast</string>
+    <string name="hasil_produksi">Hasil Produksi</string>
+    <string name="lihat_data_selengkapnya">Lihat Selengkapnya</string>
+        <string-array name="production_types">
+            <item>Harian</item>
+            <item>Batako</item>
+            <item>Paving</item>
+            <item>Gorong-Gorong</item>
+        </string-array>
+</resources>

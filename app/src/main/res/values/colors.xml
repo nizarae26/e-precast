@@ -1,0 +1,17 @@
+<resources>
+    <color name="purple_200">#BB86FC</color>
+    <color name="purple_500">#6200EE</color>
+    <color name="purple_700">#3700B3</color>
+    <color name="teal_200">#03DAC5</color>
+    <color name="teal_700">#018786</color>
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="light_blue">#F1F6FF</color>
+    <color name="custom_background_color">#2051E5</color>
+    <color name="nav_background">#FFFFFF</color> <!-- Warna untuk mode terang -->
+    <color name="selected_color">#2051E5</color>
+    <color name="unselected_color">#B0BEC5</color>
+    <color name="colorPrimary">#6200EE</color>
+    <color name="colorAccent">#03DAC5</color>
+    <color name="colorSecondary">#FF0000</color> <color name="colorSuccess">#4CAF50</color>
+</resources>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_gorong_gorong"
+        android:title="Gorong-gorong" />
+    <item
+        android:id="@+id/menu_paving"
+        android:title="Paving" />
+    <item
+        android:id="@+id/menu_batako"
+        android:title="Batako" />
+    <item
+        android:id="@+id/menu_harian"
+        android:title="Harian" />
+</menu>
