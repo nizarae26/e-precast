@@ -53,11 +53,11 @@ public class PekerjaAktifAdapter extends RecyclerView.Adapter<PekerjaAktifAdapte
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Pekerja pekerja = pekerjaList.get(position);
-        Log.d("PekerjaAktifAdapter", "Binding item at position: " + position + ", nama: " + (pekerja != null ? pekerja.getNama() : "null"));
+        Log.d("PekerjaAktifAdapter", "Binding item at position: " + position + ", nama: " + (pekerja != null ? pekerja.getName() : "null"));
         if (pekerja == null) return;
 
-        holder.tvNama.setText(pekerja.getNama() != null ? pekerja.getNama() : "Nama Tidak Tersedia");
-        holder.tvUnits.setText(String.valueOf(pekerja.getJumlahProduksi()) + " units");
+        holder.tvNama.setText(pekerja.getName() != null ? pekerja.getName() : "Nama Tidak Tersedia");
+//        holder.tvUnits.setText(String.valueOf(pekerja.getProduksi()) + " units");
         if (holder.ivAvatar != null) {
             holder.ivAvatar.setImageResource(R.drawable.avatar_placeholder);
         }

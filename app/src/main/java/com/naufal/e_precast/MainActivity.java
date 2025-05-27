@@ -266,13 +266,13 @@ public class MainActivity extends AppCompatActivity {
                                     nama = (nama != null) ? nama : "Nama Tidak Tersedia";
                                     alamat = (alamat != null) ? alamat : "Alamat Tidak Tersedia";
                                     noHp = (noHp != null) ? noHp : "No HP Tidak Tersedia";
-                                    Pekerja pekerja = new Pekerja(id, nama, jumlahProduksi, alamat, noHp, gaji);
-                                    totalWorkersCount[0]++;
-                                    if (activeWorkerIdsToday.containsKey(id)) {
-                                        activePekerjaToday.add(pekerja);
-                                        totalSalaryAmount[0] += pekerja.getGaji(); // Gunakan field gaji
-                                        Log.d(TAG, "Added active worker to list: " + pekerja.getNama() + " (ID: " + id + ")");
-                                    }
+//                                    Pekerja pekerja = new Pekerja(id, nama, jumlahProduksi, alamat, noHp, gaji);
+//                                    totalWorkersCount[0]++;
+//                                    if (activeWorkerIdsToday.containsKey(id)) {
+//                                        activePekerjaToday.add(pekerja);
+////                                        totalSalaryAmount[0] += pekerja.getGaji(); // Gunakan field gaji
+//                                        Log.d(TAG, "Added active worker to list: " + pekerja.getName() + " (ID: " + id + ")");
+//                                    }
                                 } else {
                                     Log.w(TAG, "Pekerja.getId() is null for snapshot: " + workerSnapshot.getKey());
                                 }
@@ -377,16 +377,16 @@ public class MainActivity extends AppCompatActivity {
             tvGorong.setText(String.format(Locale.getDefault(), "%,d Biji", gorongStock));
             tvPaving.setText(String.format(Locale.getDefault(), "%,d m²", pavingStock));
             tvBatako.setText(String.format(Locale.getDefault(), "%,d Biji", batakoStock));
-            Log.d(TAG, "Stock UI updated.");
+            Log.d(TAG, "Stok diperbarui.");
         });
     }
 
     private void updateProductionSummaryUI(long todayPaving, long todayGorong, long todayBatako) {
         runOnUiThread(() -> {
-            pavingCount.setText(String.format(Locale.getDefault(), "%,d units", todayPaving));
-            culvertCount.setText(String.format(Locale.getDefault(), "%,d units", todayGorong));
-            brickCount.setText(String.format(Locale.getDefault(), "%,d units", todayBatako));
-            Log.d(TAG, "Production summary UI updated.");
+            pavingCount.setText(String.format(Locale.getDefault(), "%,d m²", todayPaving));
+            culvertCount.setText(String.format(Locale.getDefault(), "%,d biji", todayGorong));
+            brickCount.setText(String.format(Locale.getDefault(), "%,d biji", todayBatako));
+            Log.d(TAG, "Ringkasan Produksi diperbarui.");
             setupProductionChartData(todayPaving, todayGorong, todayBatako);
         });
     }

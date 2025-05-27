@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View; // Tidak perlu LayoutInflater dan ViewGroup untuk Activity
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -31,6 +32,8 @@ public class SettingActivity extends AppCompatActivity {
     private TextView selectedLanguage;
     private TextView selectedCategory;
     private TextView appVersion;
+    private ImageView btnBack;
+
 
     private SharedPreferences preferences;
 
@@ -54,6 +57,8 @@ public class SettingActivity extends AppCompatActivity {
         selectedCategory = findViewById(R.id.selected_category);
         appVersion = findViewById(R.id.app_version);
         bottomNavigationView = findViewById(R.id.bottomNavigationView);
+        btnBack = findViewById(R.id.btnBack);
+
 
 
         // Load saved preferences
@@ -63,6 +68,9 @@ public class SettingActivity extends AppCompatActivity {
         setupClickListeners();
 
         setupBottomNavigation();
+
+        btnBack.setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
+
     }
 
     private void loadPreferences() {

@@ -22,15 +22,14 @@
             android:layout_width="27dp"
             android:layout_height="27dp"
             android:src="@drawable/ic_arrow_back"
-            android:layout_marginEnd="8dp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Detail Pekerja"
-            android:textColor="#FFFFFF"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:layout_marginEnd="8dp"
+            android:contentDescription="btn_back" /> <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Detail Pekerja"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:textStyle="bold" />
     </LinearLayout>
 
     <androidx.core.widget.NestedScrollView
@@ -70,58 +69,54 @@
                             android:layout_height="72dp"
                             android:src="@drawable/avatar_placeholder"
                             app:civ_border_color="#878787"
-                            app:civ_border_width="2dp" />
+                            app:civ_border_width="2dp"
+                            android:contentDescription="worker_avatar" /> <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
 
-                        <LinearLayout
-                            android:layout_width="0dp"
+                        <TextView
+                            android:id="@+id/worker_name"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
+                            android:textColor="@color/black"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            tools:text="John Doe" />
 
-                            <TextView
-                                android:id="@+id/worker_name"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:textColor="@color/black"
-                                android:textSize="20sp"
-                                android:textStyle="bold"
-                                tools:text="John Doe" />
+                        <TextView
+                            android:id="@+id/worker_address"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:textColor="@color/black"
+                            android:textSize="14sp"
+                            tools:text="Jl. Contoh No. 123, Jakarta" />
 
-                            <TextView
-                                android:id="@+id/worker_address"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:textColor="@color/black"
-                                android:textSize="14sp"
-                                tools:text="Jl. Contoh No. 123, Jakarta" />
+                        <TextView
+                            android:id="@+id/worker_phone"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:textColor="@color/black"
+                            android:textSize="14sp"
+                            tools:text="0812-3456-7890" />
 
-                            <TextView
-                                android:id="@+id/worker_phone"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:textColor="@color/black"
-                                android:textSize="14sp"
-                                tools:text="0812-3456-7890" />
-
-                            <TextView
-                                android:id="@+id/worker_category"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:background="@color/custom_background_color"
-                                android:backgroundTint="@color/black"
-                                android:paddingStart="8dp"
-                                android:paddingTop="2dp"
-                                android:paddingEnd="8dp"
-                                android:paddingBottom="2dp"
-                                android:textColor="@color/white"
-                                android:textSize="12sp"
-                                tools:text="Paving" />
-
-                        </LinearLayout>
+                        <TextView
+                            android:id="@+id/worker_category"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:background="@color/black"
+                            android:paddingStart="8dp"
+                            android:paddingTop="2dp"
+                            android:paddingEnd="8dp"
+                            android:paddingBottom="2dp"
+                            android:textColor="@color/white"
+                            android:textSize="12sp"
+                            tools:text="Pekerja Produksi" /> </LinearLayout>
 
                     </LinearLayout>
 
@@ -147,9 +142,8 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Total Units"
-                                android:textColor="@color/black"
-                                android:textSize="14sp" />
+                                android:text="Total Units (Last 7 Days)" android:textColor="@color/black"
+                                android:textSize="12sp" />
 
                             <TextView
                                 android:id="@+id/total_units"
@@ -159,9 +153,7 @@
                                 android:textColor="@color/black"
                                 android:textSize="18sp"
                                 android:textStyle="bold"
-                                tools:text="120 units" />
-
-                        </LinearLayout>
+                                tools:text="0 units" /> </LinearLayout>
 
                         <View
                             android:layout_width="1dp"
@@ -178,9 +170,8 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Total Salary"
-                                android:textColor="@color/black"
-                                android:textSize="14sp" />
+                                android:text="Total Salary (Last 7 Days)" android:textColor="@color/black"
+                                android:textSize="12sp" />
 
                             <TextView
                                 android:id="@+id/total_salary"
@@ -190,9 +181,7 @@
                                 android:textColor="#4CAF50"
                                 android:textSize="18sp"
                                 android:textStyle="bold"
-                                tools:text="Rp 960,000" />
-
-                        </LinearLayout>
+                                tools:text="Rp 0" /> </LinearLayout>
 
                     </LinearLayout>
 
@@ -259,8 +248,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Production History"
-                        android:textColor="@color/black"
+                        android:text="Production History (Last 7 Days)" android:textColor="@color/black"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -270,10 +258,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:nestedScrollingEnabled="false"
-                        tools:itemCount="5"
-                        tools:listitem="@layout/item_produksi_history" />
-
-                </LinearLayout>
+                        tools:itemCount="3" tools:listitem="@layout/item_produksi" /> </LinearLayout>
 
             </androidx.cardview.widget.CardView>
 

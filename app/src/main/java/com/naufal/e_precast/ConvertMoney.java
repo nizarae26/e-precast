@@ -16,7 +16,7 @@ public class ConvertMoney {
     public static String format(long amount) {
         String formatted = currencyFormat.format(amount);
         // Remove currency symbol and replace with "Rp "
-        return "Rp " + formatted.substring(2);
+        return "Rp. " + formatted.substring(2);
     }
 
     /**
@@ -25,13 +25,13 @@ public class ConvertMoney {
      */
     public static String formatCompact(long amount) {
         if (amount < 1000) {
-            return "Rp " + amount;
+            return "Rp. " + amount;
         } else if (amount < 1000000) {
-            return "Rp " + (amount / 1000) + "K";
+            return "Rp. " + (amount / 1000) + "K";
         } else if (amount < 1000000000) {
-            return "Rp " + (amount / 1000000) + "M";
+            return "Rp. " + (amount / 1000000) + "M";
         } else {
-            return "Rp " + (amount / 1000000000) + "B";
+            return "Rp. " + (amount / 1000000000) + "B";
         }
     }
 }

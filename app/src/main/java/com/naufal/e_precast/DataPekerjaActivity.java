@@ -1,18 +1,20 @@
+// package com.naufal.e_precast;
 package com.naufal.e_precast;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
-import android.widget.PopupMenu;
-import android.widget.TextView;
+import android.widget.ImageView;
 import android.widget.Toast;
+import android.widget.Button;
+import android.widget.TextView;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -27,402 +29,350 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.naufal.e_precast.Adapter.PekerjaAdapter;
 import com.naufal.e_precast.Model.Pekerja;
+// Import your other activities for bottom navigation
+import com.naufal.e_precast.BiodataPekerjaActivity;
+import com.naufal.e_precast.MainActivity;
+import com.naufal.e_precast.ProduksiActivity;
+import com.naufal.e_precast.LaporanActivity;
+import com.naufal.e_precast.SettingActivity;
+
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class DataPekerjaActivity extends AppCompatActivity {
+public class DataPekerjaActivity extends AppCompatActivity implements PekerjaAdapter.OnPekerjaActionListener {
 
-    private RecyclerView recyclerView;
-    private PekerjaAdapter adapter;
+    private RecyclerView pekerjaRecyclerView;
+    private EditText searchInput;
+    private FloatingActionButton addPekerjaFab;
+    private PekerjaAdapter pekerjaAdapter;
+    private List<Pekerja> allPekerja;
+    private List<Pekerja> currentPekerja;
     private BottomNavigationView bottomNavigationView;
-    private List<Pekerja> pekerjaList; // Use generic for better type safety
+    private ImageView btnBack;
+
+
     private DatabaseReference pekerjaRef;
-    private ActivityResultLauncher<Intent> biodataLauncher; // Use generic for better type safety
     private ValueEventListener pekerjaListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d("DataPekerjaActivity", "onCreate called");
+        // Optional: For full-screen aesthetic if desired
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
         setContentView(R.layout.activity_pekerja);
 
-        // Optional: For full-screen aesthetic if desired
-        // getWindow().getDecorView().setSystemUiVisibility(
-        //         View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-        // );
-
-        recyclerView = findViewById(R.id.worker_recycler_view);
-        bottomNavigationView = findViewById(R.id.bottomNavigationView);
-
-        // Initialize Firebase Database reference
+        // Initialize Firebase
         pekerjaRef = FirebaseDatabase.getInstance().getReference("pekerja");
 
-        pekerjaList = new ArrayList<>();
-        adapter = new PekerjaAdapter(
-                pekerjaList,
-                pekerja -> {
-                    Log.d("DataPekerjaActivity", "Navigating to BiodataPekerjaActivity for ID: " + pekerja.getId());
-                    Intent intent = new Intent(DataPekerjaActivity.this, BiodataPekerjaActivity.class);
-                    intent.putExtra("id", pekerja.getId());
-                    biodataLauncher.launch(intent);
-                },
-                pekerja -> {
-                    Log.d("DataPekerjaActivity", "Delete clicked: " + pekerja.getNama());
-                    new AlertDialog.Builder(this)
-                            .setTitle("Hapus Pekerja")
-                            .setMessage("Yakin ingin menghapus " + pekerja.getNama() + "?")
-                            .setPositiveButton("Hapus", (dialog, which) -> {
-                                pekerjaRef.child(pekerja.getId()).removeValue()
-                                        .addOnSuccessListener(aVoid -> {
-                                            Toast.makeText(this, "Pekerja dihapus", Toast.LENGTH_SHORT).show();
-                                        })
-                                        .addOnFailureListener(e -> {
-                                            Log.e("DataPekerjaActivity", "Gagal menghapus: " + e.getMessage());
-                                            Toast.makeText(this, "Gagal menghapus: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                                        });
-                            })
-                            .setNegativeButton("Batal", null)
-                            .show();
-                },
-                pekerja -> {
-                    Log.d("DataPekerjaActivity", "Edit clicked: " + pekerja.getNama());
-                    showEditDialog(pekerja);
-                });
+        // Initialize UI components
+        pekerjaRecyclerView = findViewById(R.id.worker_recycler_view);
+        searchInput = findViewById(R.id.search_input);
+        addPekerjaFab = findViewById(R.id.add_worker_fab);
+        bottomNavigationView = findViewById(R.id.bottomNavigationView);
+        TextView tvEmpty = findViewById(R.id.tv_empty);
+        btnBack = findViewById(R.id.btnBack);
 
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        recyclerView.setAdapter(adapter);
-        Log.d("DataPekerjaActivity", "RecyclerView setup completed");
 
-        findViewById(R.id.btnBack).setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
+        // Initialize worker lists
+        allPekerja = new ArrayList<>();
+        currentPekerja = new ArrayList<>();
 
-        FloatingActionButton fab = findViewById(R.id.add_worker_fab);
-        fab.setOnClickListener(this::showPopupMenu);
+        // Setup recycler view with adapter and listener
+        pekerjaAdapter = new PekerjaAdapter(currentPekerja, this); // 'this' refers to DataPekerjaActivity implementing OnPekerjaActionListener
+        pekerjaRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        pekerjaRecyclerView.setAdapter(pekerjaAdapter);
 
-        // Set initial selected item for bottom navigation
-        bottomNavigationView.setSelectedItemId(R.id.nav_workers);
+        // Setup Firebase listener to fetch and update data
+        setupFirebaseListener();
+
+        // Setup search functionality
+        searchInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterPekerja(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+        // Setup FAB for adding worker
+        addPekerjaFab.setOnClickListener(v -> showAddPekerjaDialog());
+
+        // Setup Back Button
+        btnBack.setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
+
+        // Setup Bottom Navigation View
+        bottomNavigationView.setSelectedItemId(R.id.nav_workers); // Set default selected item
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();
             if (itemId == R.id.nav_home) {
                 startActivity(new Intent(DataPekerjaActivity.this, MainActivity.class));
+                return true;
             } else if (itemId == R.id.nav_production) {
                 startActivity(new Intent(DataPekerjaActivity.this, ProduksiActivity.class));
-            } else if (itemId == R.id.nav_workers) {
-                // Already on this page, or just refresh data
-                // recreate(); // Recreating activity is sometimes too aggressive, just return true
                 return true;
+            } else if (itemId == R.id.nav_workers) {
+                return true; // Already on this screen, no action needed
             } else if (itemId == R.id.nav_report) {
                 startActivity(new Intent(DataPekerjaActivity.this, LaporanActivity.class));
+                return true;
             } else if (itemId == R.id.nav_settings) {
                 startActivity(new Intent(DataPekerjaActivity.this, SettingActivity.class));
+                return true;
             }
-            return false; // Return false to indicate that the event was not handled.
+            return false; // Indicate that the event was not handled (for unlisted IDs)
         });
 
-        // Register ActivityResultLauncher
-        biodataLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> Log.d("DataPekerjaActivity", "Activity result received"));
+        // Initial check for empty state
+        updateEmptyState();
+    }
 
-        // Firebase ValueEventListener for data retrieval
+    private void setupFirebaseListener() {
         pekerjaListener = new ValueEventListener() {
             @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                Log.d("DataPekerjaActivity", "Raw snapshot: " + dataSnapshot.getValue());
-                Log.d("DataPekerjaActivity", "DataSnapshot exists: " + dataSnapshot.exists());
-                Log.d("DataPekerjaActivity", "Jumlah data dari Firebase: " + dataSnapshot.getChildrenCount());
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                allPekerja.clear(); // Clear the master list to populate with fresh data
+                if (dataSnapshot.exists() && dataSnapshot.hasChildren()) {
+                    for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                        try {
+                            Pekerja pekerja = snapshot.getValue(Pekerja.class);
+                            if (pekerja != null) {
+                                // Set the ID from the Firebase snapshot key
+                                pekerja.setId(snapshot.getKey());
 
-                pekerjaList.clear(); // Clear existing data before adding new
+                                // Ensure fields are not null, providing defaults if Firebase doesn't provide them
+                                if (pekerja.getName() == null) pekerja.setName("Nama Tidak Tersedia");
+                                if (pekerja.getAlamat() == null) pekerja.setAlamat("Alamat Tidak Tersedia");
+                                if (pekerja.getNoHp() == null) pekerja.setNoHp("No HP Tidak Tersedia");
 
-                if (!dataSnapshot.exists() || dataSnapshot.getChildrenCount() == 0) {
-                    Log.w("DataPekerjaActivity", "DataSnapshot tidak ada atau kosong.");
-                    adapter.setData(pekerjaList); // Pass empty list to adapter
-                    updateEmptyState();
-                    Toast.makeText(DataPekerjaActivity.this, "Tidak ada data pekerja", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                    Log.d("DataPekerjaActivity", "Snapshot key: " + snapshot.getKey() + ", value: " + snapshot.getValue());
-                    try {
-                        String id = snapshot.getKey();
-                        String nama = snapshot.child("nama").getValue(String.class);
-                        String alamat = snapshot.child("alamat").getValue(String.class);
-                        String noHp = snapshot.child("noHp").getValue(String.class);
-
-                        // Robust parsing for numbers
-                        int jumlahProduksi = 0;
-                        int gaji = 0;
-
-                        Object jumlahProduksiObj = snapshot.child("jumlahProduksi").getValue();
-                        if (jumlahProduksiObj != null) {
-                            if (jumlahProduksiObj instanceof Long) {
-                                jumlahProduksi = ((Long) jumlahProduksiObj).intValue();
-                            } else if (jumlahProduksiObj instanceof Integer) {
-                                jumlahProduksi = (Integer) jumlahProduksiObj;
-                            } else if (jumlahProduksiObj instanceof String) {
-                                try {
-                                    jumlahProduksi = Integer.parseInt((String) jumlahProduksiObj);
-                                } catch (NumberFormatException e) {
-                                    Log.w("DataPekerjaActivity", "Invalid jumlahProduksi string: " + jumlahProduksiObj + ", defaulting to 0.");
-                                }
+                                allPekerja.add(pekerja);
                             }
+                        } catch (Exception e) {
+                            Log.e("DataPekerjaActivity", "Error parsing Pekerja data for key " + snapshot.getKey() + ": " + e.getMessage());
                         }
-
-                        Object gajiObj = snapshot.child("gaji").getValue();
-                        if (gajiObj != null) {
-                            if (gajiObj instanceof Long) {
-                                gaji = ((Long) gajiObj).intValue();
-                            } else if (gajiObj instanceof Integer) {
-                                gaji = (Integer) gajiObj;
-                            } else if (gajiObj instanceof String) {
-                                try {
-                                    gaji = Integer.parseInt((String) gajiObj);
-                                } catch (NumberFormatException e) {
-                                    Log.w("DataPekerjaActivity", "Invalid gaji string: " + gajiObj + ", defaulting to 0.");
-                                }
-                            }
-                        }
-
-                        Log.d("DataPekerjaActivity", "Parsed: id=" + id + ", nama=" + nama + ", alamat=" + alamat + ", noHp=" + noHp + ", jumlahProduksi=" + jumlahProduksi + ", gaji=" + gaji);
-
-                        if (id != null) {
-                            // Provide default strings if Firebase returns null for string fields
-                            nama = (nama != null) ? nama : "Nama Tidak Tersedia";
-                            alamat = (alamat != null) ? alamat : "Alamat Tidak Tersedia";
-                            noHp = (noHp != null) ? noHp : "No HP Tidak Tersedia";
-
-                            Pekerja pekerja = new Pekerja(id, nama, jumlahProduksi, alamat, noHp, gaji);
-                            pekerjaList.add(pekerja);
-                            Log.d("DataPekerjaActivity", "Pekerja ditambahkan: " + nama);
-                        } else {
-                            Log.w("DataPekerjaActivity", "ID null for snapshot: " + snapshot.getKey() + ". Skipping this entry.");
-                        }
-
-                    } catch (Exception e) {
-                        Log.e("DataPekerjaActivity", "Error parsing snapshot " + snapshot.getKey() + ": " + e.getMessage(), e);
                     }
                 }
-                Log.d("DataPekerjaActivity", "Total pekerja yang berhasil diparse: " + pekerjaList.size());
-                adapter.setData(pekerjaList); // Update adapter with new list
-                updateEmptyState(); // Update UI based on list size
+                // Apply current filter (or show all if no filter is active) after data is loaded
+                filterPekerja(searchInput.getText().toString());
+                updateEmptyState(); // Update UI based on new data
             }
 
             @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Log.e("DataPekerjaActivity", "Firebase error: " + databaseError.getMessage() + ", Code: " + databaseError.getCode() + ", Details: " + databaseError.getDetails());
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.e("DataPekerjaActivity", "Firebase data cancelled: " + databaseError.getMessage() +
+                        ", Code: " + databaseError.getCode() + ", Details: " + databaseError.getDetails());
                 Toast.makeText(DataPekerjaActivity.this, "Gagal memuat data: " + databaseError.getMessage(), Toast.LENGTH_LONG).show();
-                adapter.setData(pekerjaList); // Even on error, update adapter to reflect current state
-                updateEmptyState();
+                updateEmptyState(); // Update UI even on error
             }
         };
+        pekerjaRef.addValueEventListener(pekerjaListener); // Attach the listener
+    }
 
-        pekerjaRef.addValueEventListener(pekerjaListener);
+    private void filterPekerja(String query) {
+        List<Pekerja> filteredList = new ArrayList<>();
+        if (query.isEmpty()) {
+            filteredList.addAll(allPekerja); // If query is empty, show all workers
+        } else {
+            String lowerCaseQuery = query.toLowerCase();
+            for (Pekerja pekerja : allPekerja) {
+                // Perform null checks before converting to lowercase for filtering
+                String workerName = pekerja.getName() != null ? pekerja.getName().toLowerCase() : "";
+                String workerAlamat = pekerja.getAlamat() != null ? pekerja.getAlamat().toLowerCase() : "";
+                String workerNoHp = pekerja.getNoHp() != null ? pekerja.getNoHp().toLowerCase() : "";
 
-        // Test Firebase connection immediately to get initial status
-        testFirebaseConnection();
+                // Check if any relevant field contains the query
+                if (workerName.contains(lowerCaseQuery) ||
+                        workerAlamat.contains(lowerCaseQuery) ||
+                        workerNoHp.contains(lowerCaseQuery)) {
+                    filteredList.add(pekerja);
+                }
+            }
+        }
+        currentPekerja.clear();
+        currentPekerja.addAll(filteredList);
+        pekerjaAdapter.updateData(currentPekerja); // Update adapter with filtered data
+        updateEmptyState(); // Update empty state based on filtered list
     }
 
     private void updateEmptyState() {
         TextView tvEmpty = findViewById(R.id.tv_empty);
-        if (pekerjaList.isEmpty()) { // This list has 2 items according to your logs
-            recyclerView.setVisibility(View.GONE);
+        if (currentPekerja.isEmpty()) {
+            pekerjaRecyclerView.setVisibility(View.GONE);
             if (tvEmpty != null) {
                 tvEmpty.setVisibility(View.VISIBLE);
                 tvEmpty.setText("Tidak ada pekerja");
             }
-        } else { // This block should be executed if pekerjaList has 2 items
-            recyclerView.setVisibility(View.VISIBLE);
+        } else {
+            pekerjaRecyclerView.setVisibility(View.VISIBLE);
             if (tvEmpty != null) {
                 tvEmpty.setVisibility(View.GONE);
             }
         }
-        // This is the problematic log:
-        Log.d("DataPekerjaActivity", "Adapter item count: " + adapter.getItemCount());
+    }
+
+    // --- Implementation of OnPekerjaActionListener (from adapter) ---
+
+    @Override
+    public void onPekerjaClick(Pekerja pekerja) {
+        // Handle item click to navigate to BiodataPekerjaActivity
+        Toast.makeText(this, "Pekerja diklik: " + (pekerja.getName() != null ? pekerja.getName() : "Tidak Dikenal"), Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(DataPekerjaActivity.this, BiodataPekerjaActivity.class);
+        intent.putExtra("id", pekerja.getId()); // Pass the worker's ID
+        startActivity(intent);
+    }
+
+    @Override
+    public void onEditPekerja(Pekerja pekerja) {
+        Toast.makeText(this, "Edit pekerja: " + (pekerja.getName() != null ? pekerja.getName() : "Tidak Dikenal"), Toast.LENGTH_SHORT).show();
+        showEditPekerjaDialog(pekerja);
+    }
+
+    @Override
+    public void onDeletePekerja(Pekerja pekerja) {
+        Toast.makeText(this, "Hapus pekerja: " + (pekerja.getName() != null ? pekerja.getName() : "Tidak Dikenal"), Toast.LENGTH_SHORT).show();
+        showDeleteConfirmationDialog(pekerja);
+    }
+
+    // --- Dialogs for Add/Edit/Delete Operations ---
+
+    private void showAddPekerjaDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.tambah_pekerja, null);
+        builder.setView(dialogView);
+
+        TextView tvTitle = dialogView.findViewById(R.id.tvTitle);
+        EditText namaInput = dialogView.findViewById(R.id.nama_input);
+        EditText alamatInput = dialogView.findViewById(R.id.alamat_input);
+        EditText noHpInput = dialogView.findViewById(R.id.no_hp_input);
+
+        // Hide `jumlahProduksiInput` if it exists in `tambah_pekerja.xml` but is not needed
+        EditText jumlahProduksiInput = dialogView.findViewById(R.id.jumlah_produksi_input);
+        if (jumlahProduksiInput != null) {
+            jumlahProduksiInput.setVisibility(View.GONE);
+        }
+
+        tvTitle.setText("Tambah Pekerja Baru");
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+        Button btnSave = dialogView.findViewById(R.id.btnSave);
+        Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        btnSave.setOnClickListener(v -> {
+            String id = pekerjaRef.push().getKey(); // Generate unique ID
+            String nama = namaInput.getText().toString().trim();
+            String alamat = alamatInput.getText().toString().trim();
+            String noHp = noHpInput.getText().toString().trim();
+
+            if (nama.isEmpty() || alamat.isEmpty() || noHp.isEmpty()) {
+                Toast.makeText(this, "Harap isi semua field", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (id == null) {
+                Toast.makeText(this, "Gagal membuat ID pekerja", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Create Pekerja object with only relevant simplified fields
+            Pekerja newPekerja = new Pekerja(id, nama, alamat, noHp);
+
+            pekerjaRef.child(id).setValue(newPekerja)
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(this, "Pekerja berhasil ditambahkan!", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Gagal menambahkan pekerja: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        Log.e("DataPekerjaActivity", "Error adding worker: " + e.getMessage());
+                    });
+        });
+    }
+
+    private void showEditPekerjaDialog(Pekerja pekerja) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.tambah_pekerja, null);
+        builder.setView(dialogView);
+
+        TextView tvTitle = dialogView.findViewById(R.id.tvTitle);
+        EditText namaInput = dialogView.findViewById(R.id.nama_input);
+        EditText alamatInput = dialogView.findViewById(R.id.alamat_input);
+        EditText noHpInput = dialogView.findViewById(R.id.no_hp_input);
+
+        // Hide `jumlahProduksiInput` if it exists in `tambah_pekerja.xml` but is not needed
+        EditText jumlahProduksiInput = dialogView.findViewById(R.id.jumlah_produksi_input);
+        if (jumlahProduksiInput != null) {
+            jumlahProduksiInput.setVisibility(View.GONE);
+        }
+
+        tvTitle.setText("Edit Pekerja");
+        // Pre-fill dialog fields with existing worker data (with null checks)
+        namaInput.setText(pekerja.getName() != null ? pekerja.getName() : "");
+        alamatInput.setText(pekerja.getAlamat() != null ? pekerja.getAlamat() : "");
+        noHpInput.setText(pekerja.getNoHp() != null ? pekerja.getNoHp() : "");
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+        Button btnSave = dialogView.findViewById(R.id.btnSave);
+        Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        btnSave.setOnClickListener(v -> {
+            String nama = namaInput.getText().toString().trim();
+            String alamat = alamatInput.getText().toString().trim();
+            String noHp = noHpInput.getText().toString().trim();
+
+            if (nama.isEmpty() || alamat.isEmpty() || noHp.isEmpty()) {
+                Toast.makeText(this, "Harap isi semua field", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Create an updated Pekerja object with the existing ID and new data
+            Pekerja updatedPekerja = new Pekerja(pekerja.getId(), nama, alamat, noHp);
+
+            pekerjaRef.child(pekerja.getId()).setValue(updatedPekerja)
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(this, "Pekerja berhasil diperbarui!", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Gagal memperbarui pekerja: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        Log.e("DataPekerjaActivity", "Error updating worker: " + e.getMessage());
+                    });
+        });
+    }
+
+    private void showDeleteConfirmationDialog(Pekerja pekerja) {
+        new AlertDialog.Builder(this)
+                .setTitle("Hapus Pekerja")
+                .setMessage("Apakah Anda yakin ingin menghapus " + (pekerja.getName() != null ? pekerja.getName() : "pekerja ini") + "?")
+                .setPositiveButton("Hapus", (dialog, which) -> {
+                    pekerjaRef.child(pekerja.getId()).removeValue()
+                            .addOnSuccessListener(aVoid -> {
+                                Toast.makeText(this, "Pekerja berhasil dihapus!", Toast.LENGTH_SHORT).show();
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(this, "Gagal menghapus pekerja: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                Log.e("DataPekerjaActivity", "Error deleting worker: " + e.getMessage());
+                            });
+                })
+                .setNegativeButton("Batal", null)
+                .show();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // Detach the Firebase listener to prevent memory leaks when the activity is destroyed
         if (pekerjaListener != null) {
-            pekerjaRef.removeEventListener(pekerjaListener); // Remove listener to prevent memory leaks
+            pekerjaRef.removeEventListener(pekerjaListener);
         }
-    }
-
-    private void testFirebaseConnection() {
-        Log.d("DataPekerjaActivity", "Testing Firebase connection...");
-        pekerjaRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                Log.d("Firebase Test", "Connected successfully");
-                Log.d("Firebase Test", "Data exists: " + dataSnapshot.exists());
-                Log.d("Firebase Test", "Children count: " + dataSnapshot.getChildrenCount());
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Log.e("Firebase Test", "Connection failed: " + databaseError.getMessage());
-            }
-        });
-    }
-
-    private void showPopupMenu(View anchor) {
-        PopupMenu popup = new PopupMenu(this, anchor);
-        popup.getMenuInflater().inflate(R.menu.menu_fab_menu, popup.getMenu()); // Ensure this menu exists
-        popup.setOnMenuItemClickListener(item -> {
-            int itemId = item.getItemId();
-            if (itemId == R.id.action_add) {
-                showAddDialog();
-                return true;
-            } else if (itemId == R.id.action_delete) {
-                showDeleteDialog(); // This deletes all workers
-                return true;
-            }
-            return false;
-        });
-        popup.setOnDismissListener(menu -> Log.d("DataPekerjaActivity", "PopupMenu dismissed"));
-        popup.show();
-    }
-
-    private void showAddDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        View dialogView;
-        try {
-            dialogView = LayoutInflater.from(this).inflate(R.layout.tambah_pekerja, null); // Ensure this layout exists
-        } catch (Exception e) {
-            Log.e("DataPekerjaActivity", "Gagal membuka dialog: " + e.getMessage(), e);
-            Toast.makeText(this, "Gagal membuka dialog: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            return;
-        }
-        builder.setView(dialogView);
-
-        EditText namaInput = dialogView.findViewById(R.id.nama_input);
-        EditText alamatInput = dialogView.findViewById(R.id.alamat_input);
-        EditText noHpInput = dialogView.findViewById(R.id.no_hp_input);
-        TextView title = dialogView.findViewById(R.id.tvTitle);
-
-        title.setText("Tambah Pekerja");
-        EditText jumlahProduksiInput = dialogView.findViewById(R.id.jumlah_produksi_input);
-        if (jumlahProduksiInput != null) { // Null check for safety
-            jumlahProduksiInput.setVisibility(View.GONE);
-        }
-
-        String id = pekerjaRef.push().getKey();
-        AlertDialog dialog = builder.create();
-        dialog.show();
-
-        Button btnSave = dialogView.findViewById(R.id.btnSave);
-        Button btnCancel = dialogView.findViewById(R.id.btnCancel);
-
-        btnCancel.setOnClickListener(v -> dialog.dismiss());
-        btnSave.setOnClickListener(v -> {
-            String nama = namaInput.getText().toString().trim();
-            String alamat = alamatInput.getText().toString().trim();
-            String noHp = noHpInput.getText().toString().trim();
-
-            if (nama.isEmpty() || alamat.isEmpty() || noHp.isEmpty()) {
-                Toast.makeText(this, "Harap isi semua field", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            if (id == null) {
-                Toast.makeText(this, "Gagal generate ID", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            int jumlahProduksi = 0; // Default value for new worker
-            int gaji = 0; // Default value for new worker
-
-            Pekerja pekerja = new Pekerja(id, nama, jumlahProduksi, alamat, noHp, gaji);
-            pekerjaRef.child(id).setValue(pekerja)
-                    .addOnSuccessListener(aVoid -> {
-                        Toast.makeText(this, "Pekerja ditambahkan", Toast.LENGTH_SHORT).show();
-                        dialog.dismiss();
-                        Log.d("DataPekerjaActivity", "Pekerja berhasil ditambahkan: " + nama);
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e("DataPekerjaActivity", "Gagal menambahkan: " + e.getMessage(), e);
-                        Toast.makeText(this, "Gagal menambahkan: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    });
-        });
-    }
-
-    private void showEditDialog(Pekerja pekerja) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        View dialogView;
-        try {
-            dialogView = LayoutInflater.from(this).inflate(R.layout.tambah_pekerja, null); // Ensure this layout exists
-        } catch (Exception e) {
-            Log.e("DataPekerjaActivity", "Gagal membuka dialog: " + e.getMessage(), e);
-            Toast.makeText(this, "Gagal membuka dialog: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            return;
-        }
-        builder.setView(dialogView);
-
-        EditText namaInput = dialogView.findViewById(R.id.nama_input);
-        EditText alamatInput = dialogView.findViewById(R.id.alamat_input);
-        EditText noHpInput = dialogView.findViewById(R.id.no_hp_input);
-        EditText jumlahProduksiInput = dialogView.findViewById(R.id.jumlah_produksi_input);
-        TextView title = dialogView.findViewById(R.id.tvTitle);
-
-        title.setText("Edit Pekerja");
-        if (jumlahProduksiInput != null) { // Null check for safety
-            jumlahProduksiInput.setVisibility(View.GONE);
-        }
-
-        namaInput.setText(pekerja.getNama());
-        alamatInput.setText(pekerja.getAlamat());
-        noHpInput.setText(pekerja.getNoHp());
-
-        AlertDialog dialog = builder.create();
-        dialog.show();
-
-        Button btnSave = dialogView.findViewById(R.id.btnSave);
-        Button btnCancel = dialogView.findViewById(R.id.btnCancel);
-
-        btnCancel.setOnClickListener(v -> dialog.dismiss());
-        btnSave.setOnClickListener(v -> {
-            String nama = namaInput.getText().toString().trim();
-            String alamat = alamatInput.getText().toString().trim();
-            String noHp = noHpInput.getText().toString().trim();
-
-            if (nama.isEmpty() || alamat.isEmpty() || noHp.isEmpty()) {
-                Toast.makeText(this, "Harap isi semua field", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            // Use the original worker's ID, jumlahProduksi, and gaji
-            Pekerja updatedPekerja = new Pekerja(pekerja.getId(), nama, pekerja.getJumlahProduksi(), alamat, noHp, pekerja.getGaji());
-
-            pekerjaRef.child(pekerja.getId()).setValue(updatedPekerja)
-                    .addOnSuccessListener(aVoid -> {
-                        Toast.makeText(this, "Pekerja diperbarui", Toast.LENGTH_SHORT).show();
-                        dialog.dismiss();
-                        Log.d("DataPekerjaActivity", "Pekerja berhasil diperbarui: " + nama);
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e("DataPekerjaActivity", "Gagal memperbarui: " + e.getMessage(), e);
-                        Toast.makeText(this, "Gagal memperbarui: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    });
-        });
-    }
-
-    private void showDeleteDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Hapus Semua Pekerja")
-                .setMessage("Apakah Anda yakin ingin menghapus semua data pekerja? Tindakan ini tidak dapat dibatalkan.")
-                .setPositiveButton("Hapus", (dialog, which) -> {
-                    pekerjaRef.removeValue()
-                            .addOnSuccessListener(aVoid -> {
-                                Toast.makeText(this, "Semua pekerja dihapus", Toast.LENGTH_SHORT).show();
-                                Log.d("DataPekerjaActivity", "Semua data pekerja berhasil dihapus");
-                            })
-                            .addOnFailureListener(e -> {
-                                Log.e("DataPekerjaActivity", "Gagal menghapus: " + e.getMessage(), e);
-                                Toast.makeText(this, "Gagal menghapus: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                            });
-                })
-                .setNegativeButton("Batal", null)
-                .show();
     }
 }

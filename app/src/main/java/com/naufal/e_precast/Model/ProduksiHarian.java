@@ -1,15 +1,25 @@
 package com.naufal.e_precast.Model;
 
 public class ProduksiHarian {
+    private String key; // Add this new field
     private String pekerjaId;
-    private String tanggal; // Changed to String
+    private String tanggal;
     private int jumlahBatako;
     private int jumlahHarian;
-    private double jumlahPaving; // Changed to double
+    private double jumlahPaving;
     private int jumlahGorong;
     private String variasi;
 
     public ProduksiHarian() {
+        // Default constructor required for Firebase
+    }
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
     }
 
     public String getPekerjaId() {
@@ -59,11 +69,12 @@ public class ProduksiHarian {
     public void setVariasi(String variasi) {
         this.variasi = variasi;
     }
+
     public int getJumlahHarian() {
         return jumlahHarian;
     }
 
-    public void setJumlahHarian(int umlahHarian) {
+    public void setJumlahHarian(int jumlahHarian) {
         this.jumlahHarian = jumlahHarian;
     }
 }

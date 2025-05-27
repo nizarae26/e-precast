@@ -1,45 +1,47 @@
+// package com.naufal.e_precast.Model;
 package com.naufal.e_precast.Model;
+
+import com.google.firebase.database.Exclude;
 
 public class Pekerja {
     private String id;
-    private String nama;
-    private int jumlahProduksi;
-    private String alamat;
-    private String noHp;
-    private int gaji;
+    private String name;
+    private String alamat; // Address
+    private String noHp;   // Phone number
+    private int produksi;
 
-    // Default constructor required for Firebase DataSnapshot.getValue(Pekerja.class)
     public Pekerja() {
+        // Default constructor required for calls to DataSnapshot.getValue(Pekerja.class)
+        this.id = "";
+        this.name = "";
+        this.alamat = "";
+        this.noHp = "";
     }
 
-    public Pekerja(String id, String nama, int jumlahProduksi, String alamat, String noHp, int gaji) {
+    // Constructor for creating new Pekerja (e.g., from Add dialog)
+    public Pekerja(String id, String name, String alamat, String noHp) {
         this.id = id;
-        this.nama = nama;
-        this.jumlahProduksi = jumlahProduksi;
+        this.name = name;
         this.alamat = alamat;
         this.noHp = noHp;
-        this.gaji = gaji;
     }
 
     public Pekerja(String id, String nama, int jumlahProduksi, String alamat, String noHp) {
         this.id = id;
-        this.nama = nama;
-        this.jumlahProduksi = jumlahProduksi;
+        this.name = nama;
+        this.produksi = jumlahProduksi;
         this.alamat = alamat;
         this.noHp = noHp;
     }
 
     // Getters
+    @Exclude // Exclude ID from being written directly as a child of the Pekerja object
     public String getId() {
         return id;
     }
 
-    public String getNama() {
-        return nama;
-    }
-
-    public int getJumlahProduksi() {
-        return jumlahProduksi;
+    public String getName() {
+        return name;
     }
 
     public String getAlamat() {
@@ -50,21 +52,13 @@ public class Pekerja {
         return noHp;
     }
 
-    public int getGaji() {
-        return gaji;
-    }
-
-    // Setters (optional, but good practice if you modify objects)
+    // Setters
     public void setId(String id) {
         this.id = id;
     }
 
-    public void setNama(String nama) {
-        this.nama = nama;
-    }
-
-    public void setJumlahProduksi(int jumlahProduksi) {
-        this.jumlahProduksi = jumlahProduksi;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public void setAlamat(String alamat) {
@@ -75,7 +69,8 @@ public class Pekerja {
         this.noHp = noHp;
     }
 
-    public void setGaji(int gaji) {
-        this.gaji = gaji;
+    public int getProduksi() {
+        return produksi;
+
     }
 }

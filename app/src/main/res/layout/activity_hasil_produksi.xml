@@ -51,7 +51,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Record daily production results"
+                android:text="Rekap hasil produksi harian"
                 android:textColor="@color/black"
                 android:textSize="15sp" />
 
@@ -73,7 +73,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Worker"
+                        android:text="Nama Pekerja"
                         android:textColor="@color/black"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -133,7 +133,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
-                        android:hint="Quantity"
+                        android:hint="Masukkan Jumlah"
                         app:boxBackgroundMode="outline"
                         app:boxCornerRadiusBottomEnd="4dp"
                         app:boxCornerRadiusBottomStart="4dp"
@@ -154,7 +154,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
-                        android:hint="Date"
+                        android:hint="Tanggal"
                         app:boxBackgroundMode="outline"
                         app:boxCornerRadiusBottomEnd="4dp"
                         app:boxCornerRadiusBottomStart="4dp"
@@ -181,7 +181,7 @@
                         android:layout_marginTop="24dp"
                         android:backgroundTint="@color/selected_color"
                         android:padding="12dp"
-                        android:text="Submit Production"
+                        android:text="Tambah Produksi"
                         android:textAllCaps="false"
                         android:textColor="@color/white" />
                 </LinearLayout>
@@ -204,7 +204,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Recent Entries"
+                        android:text="Terakhir ditambahkan"
                         android:textColor="@color/black"
                         android:textSize="18sp"
                         android:textStyle="bold" />
@@ -222,7 +222,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
                         android:gravity="center"
-                        android:text="No recent entries"
+                        android:text="Tidak ada entri terbaru"
                         android:textColor="@color/black"
                         android:textSize="14sp"
                         android:visibility="visible" />

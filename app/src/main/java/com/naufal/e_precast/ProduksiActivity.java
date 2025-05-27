@@ -39,6 +39,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+// IMPORTANT: ProduksiActivity does NOT implement ProduksiAdapter.OnItemClickListener
+// If it did, it would need to implement onItemClick and onDeleteItemClick.
 public class ProduksiActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNavigationView;
@@ -92,7 +94,9 @@ public class ProduksiActivity extends AppCompatActivity {
         btnBack.setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
 
         produksiList = new ArrayList<>();
-        adapter = new ProduksiAdapter(produksiList);
+        // FIX IS HERE: Use the ProduksiAdapter constructor that DOES NOT take a listener
+        // because ProduksiActivity does not implement ProduksiAdapter.OnItemClickListener.
+        adapter = new ProduksiAdapter(produksiList); // <-- This line was changed
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
 
@@ -122,14 +126,14 @@ public class ProduksiActivity extends AppCompatActivity {
             @Override
             public View getView(int position, View convertView, android.view.ViewGroup parent) {
                 TextView view = (TextView) super.getView(position, convertView, parent);
-                view.setText(pekerjaList.get(position).getNama());
+                view.setText(pekerjaList.get(position).getName());
                 return view;
             }
 
             @Override
             public View getDropDownView(int position, View convertView, android.view.ViewGroup parent) {
                 TextView view = (TextView) super.getDropDownView(position, convertView, parent);
-                view.setText(pekerjaList.get(position).getNama());
+                view.setText(pekerjaList.get(position).getName());
                 return view;
             }
         };
@@ -278,6 +282,11 @@ public class ProduksiActivity extends AppCompatActivity {
             String quantity = "";
             String key = dbProduksi.push().getKey();
 
+            produksi.setJumlahBatako(0);
+            produksi.setJumlahGorong(0);
+            produksi.setJumlahHarian(0);
+            produksi.setJumlahPaving(0.0);
+
             if (category.equals("Paving")) {
                 double jumlah = Double.parseDouble(quantityStr);
                 if (jumlah <= 0) {
@@ -306,58 +315,74 @@ public class ProduksiActivity extends AppCompatActivity {
                 itemName = "Batako (" + type + ")";
                 quantity = jumlah + " pcs";
             } else if (category.equals("Harian")) {
-                int jumlahHarian = Integer.parseInt(type.replace("Rp. ", "").replace(".", ""));
-                produksi.setJumlahHarian(jumlahHarian);
-                itemName = "Harian (" + type + ")";
-                quantity = "Rp. " + String.format(Locale.getDefault(), "%,d", jumlahHarian);
+                try {
+                    String cleanAmount = type.replace("Rp. ", "").replace(".", "").trim();
+                    int jumlahHarian = Integer.parseInt(cleanAmount);
+                    if (jumlahHarian <= 0) {
+                        Toast.makeText(this, "Jumlah harian harus lebih dari 0", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    produksi.setJumlahHarian(jumlahHarian);
+                    itemName = "Harian (" + type + ")";
+                    quantity = "Rp. " + String.format(Locale.getDefault(), "%,d", jumlahHarian);
+                } catch (NumberFormatException e) {
+                    Toast.makeText(this, "Format jumlah harian tidak valid", Toast.LENGTH_SHORT).show();
+                    Log.e("ProduksiActivity", "Error parsing Harian type: " + type, e);
+                    return;
+                }
             }
 
-            ProduksiItem newItem = new ProduksiItem(itemName, quantity, R.drawable.ic_batako);
+            ProduksiItem newItem = new ProduksiItem(itemName, quantity, R.drawable.ic_batako, selectedDate);
             newItem.setKey(key);
 
-            // Add to list immediately
             synchronized (produksiList) {
-                produksiList.add(0, newItem);
-                adapter.notifyItemInserted(0);
-                recyclerView.scrollToPosition(0);
+                if (selectedDate.equals(currentDate)) {
+                    produksiList.add(0, newItem);
+                    adapter.notifyItemInserted(0);
+                    recyclerView.scrollToPosition(0);
+                    noEntriesText.setVisibility(View.GONE);
+                }
             }
 
-            // Save to Firebase
             dbProduksi.child(key).setValue(produksi).addOnCompleteListener(task -> {
                 if (task.isSuccessful()) {
                     Toast.makeText(this, "Produksi " + category + " ditambahkan", Toast.LENGTH_SHORT).show();
-                    // Only refresh if date changed
-                    if (!selectedDate.equals(currentDate)) {
-                        currentDate = selectedDate;
-                        loadRecentEntries(selectedDate);
-                    }
+                    Log.d("ProduksiActivity", "Production added successfully for date: " + selectedDate);
                 } else {
-                    // Remove if failed
                     synchronized (produksiList) {
                         int index = findItemIndexByKey(produksiList, key);
-                        if (index >= 0) {
+                        if (index >= 0 && selectedDate.equals(currentDate)) {
                             produksiList.remove(index);
                             adapter.notifyItemRemoved(index);
+                            if (produksiList.isEmpty()) {
+                                noEntriesText.setVisibility(View.VISIBLE);
+                            }
                         }
                     }
                     Toast.makeText(this, "Gagal menambahkan produksi: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                    Log.e("ProduksiActivity", "Failed to add production: " + task.getException().getMessage(), task.getException());
                 }
             });
 
-            // Reset form
             quantityInput.setText("");
+            if (!pekerjaList.isEmpty()) {
+                workerSpinner.setSelection(0);
+            }
             categorySpinner.setSelection(0);
-            typeSpinner.setSelection(0);
-            workerSpinner.setSelection(0);
 
         } catch (NumberFormatException e) {
             Toast.makeText(this, "Masukkan jumlah numerik yang valid", Toast.LENGTH_SHORT).show();
+            Log.e("ProduksiActivity", "NumberFormatException: " + e.getMessage());
         }
     }
 
     private void loadRecentEntries(String date) {
-        if (isLoadingEntries) return;
+        if (isLoadingEntries) {
+            Log.d("ProduksiActivity", "Still loading entries, ignoring new request for date: " + date);
+            return;
+        }
         isLoadingEntries = true;
+        Log.d("ProduksiActivity", "Loading entries for date: " + date);
 
         dbProduksi.orderByChild("tanggal").equalTo(date).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -365,25 +390,36 @@ public class ProduksiActivity extends AppCompatActivity {
                 isLoadingEntries = false;
                 List<ProduksiItem> newItems = new ArrayList<>();
 
+                if (!dataSnapshot.exists()) {
+                    Log.d("ProduksiActivity", "No data snapshot found for date: " + date);
+                }
+
                 for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
                     ProduksiHarian produksi = snapshot.getValue(ProduksiHarian.class);
                     if (produksi != null) {
+                        Log.d("ProduksiActivity", "Found entry: " + snapshot.getKey() + " for tanggal: " + produksi.getTanggal());
                         ProduksiItem item = createProduksiItem(produksi, snapshot.getKey());
                         if (item != null) {
                             newItems.add(item);
+                            Log.d("ProduksiActivity", "Added ProduksiItem: " + item.getItemName() + " (" + item.getQuantity() + ")");
+                        } else {
+                            Log.w("ProduksiActivity", "Failed to create ProduksiItem for key: " + snapshot.getKey() + " (all quantities are zero)");
                         }
+                    } else {
+                        Log.w("ProduksiActivity", "ProduksiHarian object is null for key: " + snapshot.getKey());
                     }
                 }
 
-                // Clear and update the list
-                synchronized (produksiList) {
-                    produksiList.clear(); // Clear existing entries
-                    produksiList.addAll(newItems); // Add all new items
-                }
+                Collections.reverse(newItems);
 
                 runOnUiThread(() -> {
+                    synchronized (produksiList) {
+                        produksiList.clear();
+                        produksiList.addAll(newItems);
+                    }
                     adapter.notifyDataSetChanged();
                     noEntriesText.setVisibility(produksiList.isEmpty() ? View.VISIBLE : View.GONE);
+                    Log.d("ProduksiActivity", "RecyclerView updated. Total items: " + produksiList.size());
                 });
             }
 
@@ -391,38 +427,39 @@ public class ProduksiActivity extends AppCompatActivity {
             public void onCancelled(DatabaseError databaseError) {
                 isLoadingEntries = false;
                 Toast.makeText(ProduksiActivity.this, "Gagal memuat data produksi: " + databaseError.getMessage(), Toast.LENGTH_SHORT).show();
+                Log.e("ProduksiActivity", "Firebase load cancelled: " + databaseError.getMessage(), databaseError.toException());
             }
         });
     }
 
     private ProduksiItem createProduksiItem(ProduksiHarian produksi, String key) {
-        if (produksi.getJumlahBatako() > 0) {
-            String itemName = "Batako (" + produksi.getVariasi() + ")";
-            String quantity = produksi.getJumlahBatako() + " pcs";
-            ProduksiItem item = new ProduksiItem(itemName, quantity, R.drawable.ic_batako);
-            item.setKey(key);
-            return item;
-        } else if (produksi.getJumlahPaving() > 0) {
-            String itemName = "Paving (" + produksi.getVariasi() + ")";
-            String quantity = String.format(Locale.getDefault(), "%.2f m²", produksi.getJumlahPaving());
-            ProduksiItem item = new ProduksiItem(itemName, quantity, R.drawable.ic_batako);
-            item.setKey(key);
-            return item;
+        String itemName = "";
+        String quantity = "";
+        int iconResId = R.drawable.ic_batako;
+
+        if (produksi.getJumlahPaving() > 0) {
+            itemName = "Paving (" + produksi.getVariasi() + ")";
+            quantity = String.format(Locale.getDefault(), "%.2f m²", produksi.getJumlahPaving());
+            iconResId = R.drawable.ic_batako;
         } else if (produksi.getJumlahGorong() > 0) {
-            String itemName = "Gorong-gorong (" + produksi.getVariasi() + ")";
-            String quantity = produksi.getJumlahGorong() + " pcs";
-            ProduksiItem item = new ProduksiItem(itemName, quantity, R.drawable.ic_batako);
-            item.setKey(key);
-            return item;
+            itemName = "Gorong-gorong (" + produksi.getVariasi() + ")";
+            quantity = produksi.getJumlahGorong() + " pcs";
+            iconResId = R.drawable.ic_batako;
+        } else if (produksi.getJumlahBatako() > 0) {
+            itemName = "Batako (" + produksi.getVariasi() + ")";
+            quantity = produksi.getJumlahBatako() + " pcs";
+            iconResId = R.drawable.ic_batako;
         } else if (produksi.getJumlahHarian() > 0) {
-            String itemName = "Harian (" + produksi.getVariasi() + ")";
-            String quantity = "Rp. " + String.format(Locale.getDefault(), "%,d", produksi.getJumlahHarian());
-            ProduksiItem item = new ProduksiItem(itemName, quantity, R.drawable.ic_batako);
-            item.setKey(key);
-            return item;
+            itemName = "Harian (" + produksi.getVariasi() + ")";
+            quantity = "Rp. " + String.format(Locale.getDefault(), "%,d", produksi.getJumlahHarian());
+            iconResId = R.drawable.ic_batako;
+        } else {
+            return null;
         }
-        return null;
+
+        return new ProduksiItem(itemName, quantity, iconResId, produksi.getTanggal());
     }
+
 
     private int findItemIndexByKey(List<ProduksiItem> items, String key) {
         for (int i = 0; i < items.size(); i++) {
@@ -438,15 +475,18 @@ public class ProduksiActivity extends AppCompatActivity {
         bottomNavigationView.setOnItemSelectedListener(item -> {
             if (item.getItemId() == R.id.nav_home) {
                 startActivity(new Intent(ProduksiActivity.this, MainActivity.class));
+                finish();
             } else if (item.getItemId() == R.id.nav_production) {
-                recreate();
                 return true;
             } else if (item.getItemId() == R.id.nav_workers) {
                 startActivity(new Intent(ProduksiActivity.this, DataPekerjaActivity.class));
+                finish();
             } else if (item.getItemId() == R.id.nav_report) {
                 startActivity(new Intent(ProduksiActivity.this, LaporanActivity.class));
+                finish();
             } else if (item.getItemId() == R.id.nav_settings) {
                 startActivity(new Intent(ProduksiActivity.this, SettingActivity.class));
+                finish();
             }
             return false;
         });

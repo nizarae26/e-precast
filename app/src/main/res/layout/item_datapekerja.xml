@@ -37,11 +37,11 @@
                 android:textColor="@android:color/black" />
 
             <TextView
-                android:id="@+id/worker_units"
+                android:id="@+id/worker_nohp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="14sp"
-                android:text="Jumlah Produksi: 0 units"
+                android:text="0987654"
                 android:textColor="@android:color/darker_gray" />
 
         </LinearLayout>
